@@ -1,5 +1,4 @@
-Flask
-rembg
-Pillow
-gunicorn
+streamlit==1.26.0
+rembg==2.0.38
+Pillow==10.0.0
 onnxruntime

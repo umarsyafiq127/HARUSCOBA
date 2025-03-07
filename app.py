@@ -1,76 +1,45 @@
-from flask import Flask, request, render_template_string
+import streamlit as st
 from rembg import remove
 from PIL import Image
 import io
-import base64
-import os
-
-app = Flask(__name__)
 
 def hapus_background(image_pil):
     try:
-        # Mengonversi gambar ke bytes
+        # Menghapus latar belakang
         image_bytes = io.BytesIO()
         image_pil.save(image_bytes, format="PNG")
-        # Proses hapus background dengan rembg
-        output_bytes = remove(image_bytes.getvalue())
-        # Mengonversi kembali ke objek PIL.Image
+        output_bytes = remove(image_bytes.getvalue())  # Proses hapus background
+        
+        # Konversi kembali ke objek PIL.Image
         output_image = Image.open(io.BytesIO(output_bytes))
         return output_image
     except Exception as e:
-        print(f"Terjadi kesalahan: {e}")
+        st.error(f"Terjadi kesalahan: {e}")
         return None
 
-# Template HTML sederhana untuk form upload dan tampilan gambar
-template = '''
-<!doctype html>
-<html>
-<head>
-  <title>Hapus Background Gambar</title>
-</head>
-<body>
-  <h1>Hapus Background Gambar</h1>
-  <form method="POST" enctype="multipart/form-data">
-    <input type="file" name="gambar" accept="image/*" required>
-    <input type="submit" value="Upload dan Proses">
-  </form>
-  {% if original_img %}
-  <h2>Gambar Asli</h2>
-  <img src="data:image/png;base64,{{ original_img }}" alt="Gambar Asli" style="max-width: 500px;">
-  {% endif %}
-  {% if processed_img %}
-  <h2>Gambar Tanpa Background</h2>
-  <img src="data:image/png;base64,{{ processed_img }}" alt="Gambar Tanpa Background" style="max-width: 500px;">
-  <br>
-  <!-- Link download menggunakan atribut download -->
-  <a href="data:image/png;base64,{{ processed_img }}" download="hasil.png">Download Gambar</a>
-  {% endif %}
-</body>
-</html>
-'''
+# Antarmuka Streamlit
+st.title("🖼️ Hapus Background Gambar")
 
-@app.route('/', methods=['GET', 'POST'])
-def index():
-    original_img_data = None
-    processed_img_data = None
-    if request.method == 'POST':
-        if 'gambar' in request.files:
-            file = request.files['gambar']
-            if file:
-                # Membuka file gambar sebagai objek PIL.Image
-                image_pil = Image.open(file.stream)
-                # Encode gambar asli ke base64 untuk ditampilkan di HTML
-                buffered = io.BytesIO()
-                image_pil.save(buffered, format="PNG")
-                original_img_data = base64.b64encode(buffered.getvalue()).decode('utf-8')
-                
-                # Proses hapus background
-                hasil_image = hapus_background(image_pil)
-                if hasil_image:
-                    buffered2 = io.BytesIO()
-                    hasil_image.save(buffered2, format="PNG")
-                    processed_img_data = base64.b64encode(buffered2.getvalue()).decode('utf-8')
-    return render_template_string(template, original_img=original_img_data, processed_img=processed_img_data)
+uploaded_file = st.file_uploader("📤 Upload gambar", type=["png", "jpg", "jpeg"])
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if uploaded_file is not None:
+    image_pil = Image.open(uploaded_file)  # Membuka sebagai objek PIL.Image
+    st.image(image_pil, caption="🖼️ Gambar Asli", use_column_width=True)
+
+    # Proses hapus background
+    hasil_image = hapus_background(image_pil)
+
+    if hasil_image:
+        st.image(hasil_image, caption="✅ Gambar Tanpa Background", use_column_width=True)
+        
+        # Menyimpan hasil ke buffer untuk diunduh
+        hasil_io = io.BytesIO()
+        hasil_image.save(hasil_io, format="PNG")
+        hasil_io.seek(0)
+
+        st.download_button(
+            label="⬇️ Download Gambar",
+            data=hasil_io,
+            file_name="hasil.png",
+            mime="image/png"
+        )

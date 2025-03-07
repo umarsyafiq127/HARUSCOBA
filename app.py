@@ -3,6 +3,7 @@ from rembg import remove
 from PIL import Image
 import io
 import base64
+import os
 
 app = Flask(__name__)
 
@@ -72,4 +73,4 @@ def index():
     return render_template_string(template, original_img=original_img_data, processed_img=processed_img_data)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
